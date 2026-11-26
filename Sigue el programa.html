@@ -1,0 +1,1557 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<!-- v6: meta oculta, preguntas de predicción, explicación por paso, demostración, while como for, funciones sin llamar -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sigue el programa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    --bg: #eef0f8;
+    --panel: #ffffff;
+    --panel-line: #d6daea;
+    --text: #1d2140;
+    --muted: #6a7096;
+    --dot: #c9cee6;
+    --player: #f59e0b;
+    --player-glow: rgba(245, 158, 11, .45);
+    --goal: #0d9488;
+    --bad: #e11d48;
+    --good: #059669;
+    --run: #4f46e5;
+    --code-key: #7c3aed;
+    --code-num: #d97706;
+    --code-fn: #2563eb;
+    --code-str: #db2777;
+    --code-com: #8a90b3;
+    --guide: #dde0ee;
+    --line-run: rgba(79, 70, 229, .12);
+    --line-bad: rgba(225, 29, 72, .16);
+    --line-good: rgba(5, 150, 105, .16);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10132a; --panel: #181c3a; --panel-line: #2b3160; --text: #e7e9fb; --muted: #8f96c9;
+      --dot: #363c72; --player: #fbbf24; --player-glow: rgba(251, 191, 36, .5); --goal: #2dd4bf;
+      --bad: #fb7185; --good: #34d399; --run: #818cf8; --code-key: #c4b5fd; --code-num: #fbbf24;
+      --code-fn: #7dd3fc; --code-str: #f9a8d4; --code-com: #6b73ad; --guide: #2f3566; --line-run: rgba(129,140,248,.16);
+      --line-bad: rgba(251,113,133,.2); --line-good: rgba(52,211,153,.2);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10132a; --panel: #181c3a; --panel-line: #2b3160; --text: #e7e9fb; --muted: #8f96c9;
+    --dot: #363c72; --player: #fbbf24; --player-glow: rgba(251, 191, 36, .5); --goal: #2dd4bf;
+    --bad: #fb7185; --good: #34d399; --run: #818cf8; --code-key: #c4b5fd; --code-num: #fbbf24;
+    --code-fn: #7dd3fc; --code-str: #f9a8d4; --code-com: #6b73ad; --guide: #2f3566; --line-run: rgba(129,140,248,.16);
+    --line-bad: rgba(251,113,133,.2); --line-good: rgba(52,211,153,.2);
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: inherit; }
+  body {
+    margin: 0; min-height: 100vh;
+    background: var(--bg); color: var(--text);
+    font-family: "Sora", system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 20px 16px 32px;
+  }
+  header { width: 100%; max-width: 1040px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  h1 { font-size: clamp(1.15rem, 2.6vw, 1.5rem); margin: 0; font-weight: 700; letter-spacing: -.01em; }
+  .stats { display: flex; gap: 18px; font-size: .9rem; color: var(--muted); }
+  .stats b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Progreso de niveles ---------- */
+  .progress { width: 100%; max-width: 1040px; margin-bottom: 18px; display: flex; flex-direction: column; gap: 8px; }
+  .pill { display: flex; align-items: center; gap: 14px; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 999px; padding: 8px 8px 8px 16px; }
+  .track { position: relative; flex: 1; display: flex; align-items: center; gap: 7px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
+  .track::-webkit-scrollbar { display: none; }
+  .count { flex: none; font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; padding-right: 8px; }
+  .count b { color: var(--text); }
+  .dot {
+    flex: none; width: 15px; height: 15px; padding: 0; border-radius: 50%; cursor: pointer;
+    background: var(--bg); border: 2px solid var(--panel-line); color: var(--text);
+    font: 700 .95rem/1 "Sora", system-ui, sans-serif; display: grid; place-items: center;
+    transition: width .25s, height .25s, background .25s, border-color .25s;
+  }
+  .dot:hover { border-color: var(--muted); }
+  .dot:focus-visible { outline: 3px solid var(--run); outline-offset: 2px; }
+  .dot.done  { background: var(--good); border-color: var(--good); }
+  .dot.retry { background: color-mix(in srgb, var(--good) 38%, var(--panel)); border-color: var(--good); }
+  .dot.current { width: 38px; height: 38px; background: var(--panel); border: 3px solid var(--run); }
+  .dot.current.done, .dot.current.retry { border-color: var(--good); }
+  .dot.just { animation: dotPop .7s ease-out; }
+  @keyframes dotPop { 35% { transform: scale(1.35); box-shadow: 0 0 0 8px color-mix(in srgb, var(--good) 28%, transparent); } }
+  .dot.oops { animation: dotOops .45s ease-in-out; border-color: var(--bad); }
+  @keyframes dotOops { 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font-size: .78rem; color: var(--muted); padding-left: 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 11px; height: 11px; border-radius: 50%; background: var(--bg); border: 2px solid var(--panel-line); }
+  .legend i.done { background: var(--good); border-color: var(--good); }
+  .legend i.retry { background: color-mix(in srgb, var(--good) 38%, var(--panel)); border-color: var(--good); }
+  .legend button { margin-left: auto; border: 0; background: none; color: var(--muted); font: inherit; font-size: .78rem; text-decoration: underline; cursor: pointer; padding: 2px 4px; }
+  .legend button:focus-visible { outline: 3px solid var(--run); outline-offset: 2px; }
+
+  main { width: 100%; max-width: 1040px; display: grid; grid-template-columns: minmax(300px, 470px) 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 820px) { main { grid-template-columns: 1fr; } }
+
+  /* ---------- Panel de código ---------- */
+  .code {
+    background: var(--panel); border: 1px solid var(--panel-line); border-radius: 12px; overflow: hidden;
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .84rem;
+  }
+  .code-title { padding: 10px 14px; border-bottom: 1px solid var(--panel-line); color: var(--muted); font-size: .78rem; }
+  .code ol { list-style: none; margin: 0; padding: 8px 0; counter-reset: l; position: relative; max-height: min(52vh, 460px); overflow: auto; }
+  #codeLines > li { counter-increment: l; display: flex; align-items: stretch; min-height: 1.75em; line-height: 1.75; padding: 0 14px 0 0; white-space: pre; transition: background .2s; border-left: 3px solid transparent; }
+  .code .txt { white-space: pre; }
+  .code .tab { flex: none; width: 3ch; border-left: 1px solid var(--guide); }
+  #codeLines > li::before { content: counter(l); width: 38px; flex: none; text-align: right; padding-right: 14px; color: var(--code-com); }
+  .k { color: var(--code-key); } .n { color: var(--code-num); } .f { color: var(--code-fn); } .c { color: var(--code-com); } .s { color: var(--code-str); }
+  .val { color: var(--code-num); font-weight: 600; }
+  .live { margin-left: 10px; color: var(--code-num); }
+  li.run  { background: var(--line-run);  border-left-color: var(--run); }
+  li.bad  { background: var(--line-bad);  border-left-color: var(--bad); }
+  li.good { background: var(--line-good); border-left-color: var(--good); }
+  li.askline { outline: 2px dashed var(--run); outline-offset: -2px; }
+
+  /* ---------- Partes de un bucle (inicio, comprobación, cuerpo, aumento) ---------- */
+  .ph.on { background: color-mix(in srgb, var(--run) 30%, transparent); border-radius: 4px; outline: 2px solid var(--run); outline-offset: 1px; }
+  .ph.on.exit { background: color-mix(in srgb, var(--bad) 22%, transparent); outline-color: var(--bad); }
+  #codeLines > li.phase { background: color-mix(in srgb, var(--run) 26%, transparent); border-left-color: var(--run); }
+  .phl { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .phl li { padding: 4px 8px; border-radius: 8px; border-left: 3px solid transparent; opacity: .5; transition: opacity .2s, background .2s; }
+  .phl li.past { opacity: .85; }
+  .phl li.on { opacity: 1; color: var(--text); background: var(--bg); border-left-color: var(--run); }
+
+  /* ---------- Explicación de cada paso ---------- */
+  .explain { border-top: 1px solid var(--panel-line); padding: 12px 14px 14px; min-height: 156px; max-height: 270px; overflow: auto; font-family: "Sora", system-ui, sans-serif; font-size: .84rem; line-height: 1.55; color: var(--muted); }
+  .explain .ex-head { color: var(--text); font-weight: 600; margin-bottom: 6px; }
+  .explain .ex-head.bad { color: var(--bad); }
+  .explain .ex-head.good { color: var(--good); }
+  .explain ul { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: 5px; }
+  .explain code, .ask code, .tip code { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .78rem; color: var(--text); background: var(--bg); padding: 1px 5px; border-radius: 5px; }
+
+  /* ---------- Tablero ---------- */
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .board-wrap {
+    --cell: clamp(24px, min(calc((100vw - 96px) / 9.9), 54px), 54px);
+    --gap: calc(var(--cell) * .16);
+    --step: calc(var(--cell) + var(--gap));
+    position: relative;
+    padding: calc(var(--cell) * .55);
+    background: var(--panel); border: 1px solid var(--panel-line); border-radius: 18px;
+    transition: box-shadow .25s;
+  }
+  .board { position: relative; display: grid; grid-template-columns: repeat(9, var(--cell)); grid-auto-rows: var(--cell); gap: var(--gap); }
+  .cell { border-radius: 50%; background: var(--dot); transition: background .25s, transform .25s; }
+  .cell.goal { background: transparent; box-shadow: inset 0 0 0 3px var(--goal); animation: goalPulse 1.8s ease-in-out infinite; }
+  .cell.block { background: var(--bad); transform: scale(.72); }
+  @keyframes goalPulse { 50% { box-shadow: inset 0 0 0 3px var(--goal), 0 0 0 6px color-mix(in srgb, var(--goal) 22%, transparent); } }
+
+  .player {
+    position: absolute; left: 0; top: 0; width: var(--cell); height: var(--cell); border-radius: 50%;
+    background: var(--player); box-shadow: 0 0 calc(var(--cell) * .5) var(--player-glow);
+    translate: calc(var(--x) * var(--step)) calc(var(--y) * var(--step));
+    transition: translate .14s cubic-bezier(.3,.8,.4,1.2), background .2s;
+    z-index: 2; pointer-events: none;
+  }
+  .player.pop { animation: pop .18s ease-out; }
+  @keyframes pop { 40% { scale: 1.14 .88; } 100% { scale: 1; } }
+  .player.hurt { background: var(--bad); animation: hurt .5s ease-in-out; transition: translate .45s ease-in .35s, background .2s; }
+  @keyframes hurt { 25% { scale: 1.35; } 50% { scale: .7; } 75% { scale: 1.1; } }
+
+  .board-wrap.shake { animation: shake .42s cubic-bezier(.36,.07,.19,.97); }
+  @keyframes shake { 10%,90% { transform: translateX(-2px); } 20%,80% { transform: translateX(5px); } 30%,50%,70% { transform: translateX(-9px); } 40%,60% { transform: translateX(9px); } }
+  .board-wrap.flash-bad { box-shadow: 0 0 0 3px var(--bad), 0 0 30px color-mix(in srgb, var(--bad) 45%, transparent); }
+  .board-wrap.flash-good { box-shadow: 0 0 0 3px var(--good), 0 0 40px color-mix(in srgb, var(--good) 45%, transparent); }
+
+  .cell.wave { animation: wave .7s ease-out both; animation-delay: calc(var(--d) * 70ms); }
+  @keyframes wave { 0% { transform: scale(1); } 40% { transform: scale(1.35); background: var(--good); } 100% { transform: scale(1); } }
+  .cell.block.wave { animation-name: waveBlock; }
+  @keyframes waveBlock { 40% { transform: scale(.95); background: var(--good); } 100% { transform: scale(.72); } }
+
+  .banner {
+    position: absolute; left: 50%; top: 50%; translate: -50% -50%; scale: .6; opacity: 0; pointer-events: none;
+    padding: 10px 22px; border-radius: 999px; font-weight: 700; font-size: clamp(1rem, 3.4vw, 1.35rem); color: #fff; z-index: 5;
+    transition: scale .25s cubic-bezier(.3,1.5,.5,1), opacity .2s; white-space: nowrap;
+  }
+  .banner.show { scale: 1; opacity: 1; }
+  .banner.good { background: var(--good); } .banner.bad { background: var(--bad); } .banner.info { background: var(--run); }
+
+  /* ---------- Pregunta de predicción ---------- */
+  .ask { margin: 0 12px 12px; background: var(--panel); border: 2px solid var(--run); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; font-family: "Sora", system-ui, sans-serif; font-size: .84rem; }
+  .ask[hidden] { display: none; }
+  .ask.enter { animation: askIn .3s ease-out; }
+  @keyframes askIn { from { opacity: 0; translate: 0 8px; } }
+  .ask.shake { animation: shake .42s cubic-bezier(.36,.07,.19,.97); }
+  .ask.answered { border-color: var(--good); }
+  .ask-q { font-weight: 600; font-size: .95rem; line-height: 1.45; }
+  .ask-line { display: inline-block; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .76rem; font-weight: 400; color: var(--run); border: 1px dashed var(--run); border-radius: 6px; padding: 0 6px; margin-right: 6px; }
+  .ask-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ask-opts button { border: 1px solid var(--panel-line); background: var(--bg); color: var(--text); border-radius: 10px; padding: 8px 14px; font: inherit; font-size: .9rem; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+  .ask-opts button:hover:not(:disabled) { border-color: var(--run); }
+  .ask-opts button:focus-visible { outline: 3px solid var(--run); outline-offset: 2px; }
+  .ask-opts button.wrong { border-color: var(--bad); color: var(--bad); opacity: .7; }
+  .ask-opts button.right { border-color: var(--good); background: color-mix(in srgb, var(--good) 14%, var(--panel)); }
+  .ask-opts button:disabled { cursor: default; }
+  .ask-opts kbd { font-size: .72rem; }
+  .ask-msg { font-size: .85rem; line-height: 1.5; color: var(--muted); min-height: 1.5em; }
+  .ask-msg.bad { color: var(--bad); }
+  .ask-msg.ok { color: var(--good); }
+
+  .tip { color: var(--muted); font-size: .88rem; max-width: 52ch; line-height: 1.55; display: flex; flex-direction: column; gap: 6px; }
+  .tip p { margin: 0; }
+  kbd { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .8rem; padding: 1px 6px; border: 1px solid var(--panel-line); border-bottom-width: 2px; border-radius: 5px; background: var(--panel); }
+
+  .pad { display: grid; grid-template-columns: repeat(3, 54px); grid-template-rows: repeat(2, 54px); gap: 6px; }
+  .pad button { border: 1px solid var(--panel-line); background: var(--panel); color: var(--text); border-radius: 12px; font-size: 1.25rem; cursor: pointer; touch-action: manipulation; }
+  .pad button:active { background: var(--line-run); }
+  .pad .u { grid-column: 2; grid-row: 1; } .pad .l { grid-column: 1; grid-row: 2; } .pad .d { grid-column: 2; grid-row: 2; } .pad .r { grid-column: 3; grid-row: 2; }
+  @media (hover: hover) and (pointer: fine) { .pad { display: none; } }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .actions button { border: 1px solid var(--panel-line); background: var(--panel); color: var(--text); padding: 8px 16px; border-radius: 999px; font: inherit; font-size: .88rem; cursor: pointer; }
+  .actions button.demo { border-color: var(--run); color: var(--run); }
+  .actions button[hidden] { display: none; }
+  .pad button:focus-visible, .actions button:focus-visible { outline: 3px solid var(--run); outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dot.just, .dot.oops, .ask.enter, .ask.shake { animation: none; }
+    .cell.goal, .cell.wave, .board-wrap.shake, .player.pop, .player.hurt { animation: none; }
+    .player { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="title">Nivel 1: Secuencias</h1>
+  <div class="stats">
+    <span>Paso <b id="sStep">0/0</b></span>
+    <span>Fallos <b id="sFails">0</b></span>
+  </div>
+</header>
+
+<nav class="progress" aria-label="Progreso de niveles">
+  <div class="pill">
+    <div class="track" id="track"></div>
+    <div class="count"><b id="progCount">0</b>/<span id="progTotal">29</span></div>
+  </div>
+  <div class="legend">
+    <span><i class="done"></i>a la primera</span>
+    <span><i class="retry"></i>con fallos o ayudas</span>
+    <span><i></i>pendiente</span>
+    <button type="button" id="resetProg">Borrar progreso</button>
+  </div>
+</nav>
+
+<main>
+  <section class="code" aria-label="Programa a ejecutar">
+    <div class="code-title">programa.js</div>
+    <ol id="codeLines"></ol>
+    <div class="ask" id="ask" hidden role="group" aria-labelledby="askQ">
+      <div class="ask-q" id="askQ"></div>
+      <div class="ask-opts" id="askOpts"></div>
+      <div class="ask-msg" id="askMsg" aria-live="polite"></div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="stage">
+    <div class="board-wrap" id="wrap">
+      <div class="board" id="board" role="img" aria-label="Tablero de 9 por 9 círculos">
+        <div class="player" id="player"></div>
+      </div>
+      <div class="banner" id="banner"></div>
+    </div>
+    <div class="tip" id="tip"></div>
+    <div class="pad" aria-label="Controles táctiles">
+      <button class="u" data-dir="up" aria-label="Arriba">↑</button>
+      <button class="l" data-dir="left" aria-label="Izquierda">←</button>
+      <button class="d" data-dir="down" aria-label="Abajo">↓</button>
+      <button class="r" data-dir="right" aria-label="Derecha">→</button>
+    </div>
+    <div class="actions">
+      <button id="demo" class="demo">▶ Ver ejecución</button>
+      <button id="hint">Ver la meta (pista)</button>
+      <button id="restart">Reiniciar programa</button>
+      <button id="another">Otro programa</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  var N = 9;
+  var DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+  var DIRKEYS = ['up', 'down', 'left', 'right'];
+  var NAMES = { up: 'arriba', down: 'abajo', left: 'izquierda', right: 'derecha' };
+  var OPP = { up: 'down', down: 'up', left: 'right', right: 'left' };
+  var KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right' };
+  var HIDE_GOAL_FROM = 3;   // a partir de este nivel la meta no se ve: hay que ejecutar el código
+
+  function rnd(n) { return Math.floor(Math.random() * n); }
+  function pick(a) { return a[rnd(a.length)]; }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = rnd(i + 1), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function inB(x, y) { return x >= 0 && y >= 0 && x < N && y < N; }
+  function key(x, y) { return x + ',' + y; }
+
+  /* ============ Textos de explicación ============ */
+  function fmt(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/`([^`]+)`/g, '<code>$1</code>');
+  }
+  function subst(text, name, val) { return text.replace(new RegExp('\\b' + name + '\\b', 'g'), String(val)); }
+  function joinList(arr) { return arr.length <= 1 ? arr.join('') : arr.slice(0, -1).join(', ') + ' y ' + arr[arr.length - 1]; }
+
+  function stmtText(b) {
+    if (b.t === 'move') return '`mover("' + NAMES[b.d] + '")`';
+    if (b.t === 'movevar') return '`mover(dir)`';
+    return 'las líneas de dentro';
+  }
+  // i++ , i = i + 1 e i += 1 hacen lo mismo
+  function incEquiv(text, name) {
+    var forms = /\+ 2$|\+= 2$/.test(text) ? [name + ' += 2', name + ' = ' + name + ' + 2'] : [name + '++', name + ' = ' + name + ' + 1', name + ' += 1'];
+    return '`' + text + '` es lo mismo que ' + forms.filter(function (f) { return f !== text; }).map(function (f) { return '`' + f + '`'; }).join(' y ');
+  }
+  // Las 4 partes de cada vuelta de un for, en orden: inicio (1ª vez), comprobación, cuerpo, aumento
+  function forNarr(i, total, j, len, limText, it, bd) {
+    var why = [], phases = [], isNum = /^\d+$/.test(limText);
+    if (j === 0) {
+      if (i === 0) {
+        phases.push({ k: 'init', node: it, text: '① Inicialización (solo la primera vez): `let i = 0` → `i` vale 0.' });
+        why.push('Es lo mismo que: `let i = 0; while (i < ' + limText + ') { …; i++; }`');
+      }
+      phases.push({ k: 'cond', node: it, text: '② Comprobación: `' + i + ' < ' + total + '` → verdadero: se entra al cuerpo.' + (isNum ? '' : ' (`' + limText + '` vale ' + total + ')') });
+    }
+    phases.push({ k: 'body', node: bd, text: '③ Cuerpo' + (len > 1 ? ' (línea ' + (j + 1) + ' de ' + len + ')' : '') + ': se ejecuta ' + stmtText(bd) + '.' });
+    if (j === len - 1) {
+      phases.push({ k: 'inc', node: it, text: '④ Aumento: ' + incEquiv('i++', 'i') + ' → `i` pasa a valer ' + (i + 1) + '.' });
+      if (i === total - 1) phases.push({ k: 'exit', node: it, text: '② Comprobación: `' + total + ' < ' + total + '` → falso: el `for` termina.' });
+    }
+    return { why: why, post: [], phases: phases };
+  }
+  function callSig(n) {
+    var a = [];
+    if (n.def.param) a.push('"' + NAMES[n.arg] + '"');
+    if (n.def.count) a.push(n.cntText);
+    return n.def.name + '(' + a.join(', ') + ')';
+  }
+  function callWhy(n) {
+    var s = 'Llamada `' + callSig(n) + '`: el programa salta a la función y ejecuta su cuerpo.';
+    if (n.def.param) {
+      s += ' Dentro, `dir` vale `"' + NAMES[n.arg] + '"`';
+      if (n.def.count) s += ' y `veces` vale ' + n.cnt + (/^\d+$/.test(n.cntText) ? '' : ' (se calcula `' + n.cntText + '`)');
+      s += '.';
+    }
+    return s;
+  }
+  function callPost(n) { return 'Fin de `' + n.def.name + '`: el programa vuelve a la línea siguiente a la llamada.'; }
+  function letWhy(n) {
+    return /^\d+$/.test(n.text)
+      ? 'Se crea la variable `' + n.name + '` y se guarda el valor ' + n.value + '.'
+      : 'Se calcula `' + n.text + '` = ' + n.value + ' y se guarda en la variable `' + n.name + '`.';
+  }
+
+  /* ============ Generador de niveles ============ */
+  var LEVELS = [
+    { title: 'Secuencias', plan: ['move', 'move', 'move'] },
+    { title: 'Secuencias largas', plan: ['move', 'move', 'move', 'move', 'move', 'move'] },
+    { title: 'Bucles for', plan: ['move', 'for', 'move'], forN: [2, 3], body2: 0 },
+    { title: 'Bucles con varias líneas', plan: ['for', 'move', 'for'], forN: [2, 3], body2: 0.8 },
+    { title: 'Condicionales', plan: ['move', 'if', 'move'] },
+    { title: 'Más condicionales', plan: ['if', 'if', 'move', 'if'] },
+    { title: 'for e if juntos', plan: ['for', 'if', 'move', 'if'], forN: [2, 3], body2: 0.5 },
+    { title: 'Bucles while', plan: ['move', 'while', 'move'] },
+    { title: 'while e if', plan: ['while', 'if', 'while'] },
+    { title: 'Bucles y condicionales', plan: ['for', 'while', 'if', 'move'], forN: [2, 4], body2: 0.6 },
+    { title: 'Funciones', plan: ['move', 'call', 'move'] },
+    { title: 'Reutilizar funciones', plan: ['call', 'move', 'call', 'call'] },
+    { title: 'Definir no es ejecutar', plan: ['decoy', 'call', 'move', 'call'] },
+    { title: 'Funciones con parámetros', plan: ['callp', 'move', 'callp'] },
+    { title: 'Funciones y parámetros', plan: ['callp', 'call', 'callp', 'move'] },
+    { title: 'Funciones con bucles', plan: ['move', 'callf', 'move', 'callf'] },
+    { title: 'Parámetros y bucles', plan: ['callpf', 'move', 'callpf', 'callpf'] },
+    { title: 'Funciones que llaman a funciones', plan: ['move', 'calln', 'move'] },
+    { title: 'Funciones anidadas', plan: ['calln', 'move', 'calln'] },
+    { title: 'Variables de texto', plan: ['vdir', 'move', 'vdir'] },
+    { title: 'Variables numéricas', plan: ['vfor', 'move', 'vfor'] },
+    { title: 'Operaciones con variables', plan: ['vforop', 'vforop', 'move'] },
+    { title: 'while con contador', plan: ['move', 'vwhile', 'move'] },
+    { title: 'while con saltos y límites', plan: ['vwhile2', 'move', 'vwhile2'] },
+    { title: 'Repetir con for o con while', plan: ['rep', 'move', 'rep'], forN: [2, 4] },
+    { title: 'Repetir con variables', plan: ['vforop', 'rep', 'rep'], forN: [2, 4], body2: 0.3 },
+    { title: 'Condicionales con variables', plan: ['vforop', 'vif', 'vif'], body2: 0.3 },
+    { title: 'Variables y funciones', plan: ['vforop', 'vfunc', 'vfunc'] },
+    { title: 'Todo con variables', plan: ['vforop', 'vwhile2', 'vif', 'vfunc'], body2: 0.4 }
+  ];
+  var MIXED_TITLE = 'Programa mixto';
+  function levelTitle(level) { return level <= LEVELS.length ? LEVELS[level - 1].title : MIXED_TITLE; }
+
+  function levelCfg(level) {
+    if (level <= LEVELS.length) {
+      var l = LEVELS[level - 1];
+      return { plan: l.plan, forN: l.forN || [2, 3], body2: l.body2 || 0 };
+    }
+    var pool = ['for', 'if', 'while', 'call', 'callp', 'callf', 'callpf', 'calln', 'vdir', 'vfor', 'vforop', 'vwhile', 'vwhile2', 'vif', 'vfunc', 'rep', 'rep', 'decoy', 'if', 'for', 'while', 'vforop', 'move'];
+    var len = Math.min(5 + Math.floor((level - LEVELS.length - 1) / 2), 9);
+    shuffle(pool);
+    return { plan: pool.slice(0, len), forN: [2, 4], body2: 0.5 };
+  }
+
+  function mvNode(d) { return { t: 'move', d: d }; }
+
+  function randSeq(len) {
+    var seq = [];
+    for (var i = 0; i < len; i++) {
+      var prev = seq[i - 1];
+      seq.push(pick(DIRKEYS.filter(function (d) { return !prev || d !== OPP[prev]; })));
+    }
+    return seq;
+  }
+  function makeSimple() { return [{ t: 'def', name: '', param: false, body: randSeq(2 + rnd(2)).map(mvNode) }]; }
+  function makeLoopFn() {
+    var d1 = pick(DIRKEYS);
+    var d2 = pick(DIRKEYS.filter(function (x) { return x !== d1 && x !== OPP[d1]; }));
+    var f = { t: 'for', n: 2 + rnd(2), body: [mvNode(d1)] };
+    return [{ t: 'def', name: '', param: false, body: Math.random() < 0.5 ? [f, mvNode(d2)] : [mvNode(d2), f] }];
+  }
+  function makeNested() {
+    var inner = { t: 'def', name: '', param: false, body: randSeq(2).map(mvNode) };
+    var callIn = { t: 'call', def: inner };
+    var extra = mvNode(pick(DIRKEYS));
+    var outer = { t: 'def', name: '', param: false, body: Math.random() < 0.5 ? [callIn, extra] : [extra, callIn] };
+    return [inner, outer];
+  }
+  function makeParam(withFor) {
+    var k = 2 + rnd(2), body = [];
+    if (withFor) body.push({ t: 'for', n: k, body: [{ t: 'movevar' }] });
+    else for (var i = 0; i < k; i++) body.push({ t: 'movevar' });
+    return { t: 'def', name: withFor ? 'recorrer' : 'avanzar', param: true, body: body };
+  }
+
+  // Desenrolla el cuerpo de una función en la lista de pasos que se ejecutan
+  function headText(def, arg, cnt) {
+    return 'dir = "' + NAMES[arg] + '"' + (def.count ? ', veces = ' + cnt : '');
+  }
+  function expandItems(items, arg, def, cnt) {
+    var out = [];
+    items.forEach(function (it) {
+      if (it.t === 'move') out.push({ d: it.d, lines: [it], live: [], why: [], post: [], phases: [] });
+      else if (it.t === 'movevar') out.push({ d: arg, lines: [it], live: [{ node: def, text: headText(def, arg, cnt) }], why: [], post: [], phases: [] });
+      else if (it.t === 'for') {
+        var total = it.nParam ? cnt : it.n, limText = it.nVar || String(it.n);
+        for (var i = 0; i < total; i++) {
+          it.body.forEach(function (bd, j) {
+            var live = [{ node: it, text: 'i = ' + i }];
+            if (bd.t === 'movevar') live.push({ node: def, text: headText(def, arg, cnt) });
+            var nr = forNarr(i, total, j, it.body.length, limText, it, bd);
+            out.push({ d: bd.t === 'move' ? bd.d : arg, lines: [it, bd], live: live, why: nr.why, post: nr.post, phases: nr.phases });
+          });
+        }
+      } else if (it.t === 'call') {
+        var sub = expandItems(it.def.body, it.arg, it.def, it.cnt);
+        if (sub.length) {
+          sub[0].why = [callWhy(it)].concat(sub[0].why || []);
+          sub[sub.length - 1].post = (sub[sub.length - 1].post || []).concat([callPost(it)]);
+        }
+        sub.forEach(function (st) {
+          out.push({ d: st.d, lines: [it].concat(st.lines), live: st.live, why: st.why, post: st.post, phases: st.phases });
+        });
+      }
+    });
+    return out;
+  }
+
+  // Expresión (texto JS válido) cuyo valor es target
+  function exprFor(target, ops) {
+    if (!ops) return String(target);
+    var opts = [], a, f;
+    if (target >= 2) { a = 1 + rnd(target - 1); opts.push(a + ' + ' + (target - a)); }
+    for (f = 2; f <= target; f++) if (target % f === 0 && target / f >= 2) opts.push(f + ' * ' + (target / f));
+    var bb = 1 + rnd(3);
+    opts.push((target + bb) + ' - ' + bb);
+    return pick(opts);
+  }
+
+  function gen(level) {
+    var cfg = levelCfg(level), plan = cfg.plan, used = [];
+    var pos = { x: rnd(N), y: rnd(N) }, start = { x: pos.x, y: pos.y };
+    var blocks = {}, visited = {}, reserved = {}, prog = [], trace = [], defs = [], slots = {};
+    var vars = {}, dirVar = null, pend = [], pendWhy = [];
+    var nameQ = shuffle(['escalera', 'zigzag', 'esquina', 'gancho', 'salto', 'rampa', 'camino', 'ruta']);
+    var varQ = shuffle(['pasos', 'cuenta', 'total', 'saltos', 'n', 'altura', 'ancho', 'pisos']);
+    var cntQ = ['c', 'j', 'k'], limQ = ['limite', 'tope'];
+    visited[key(pos.x, pos.y)] = 1;
+
+    function isFree(x, y) { return inB(x, y) && !blocks[key(x, y)]; }
+    function adv(d) { pos = { x: pos.x + DIRS[d][0], y: pos.y + DIRS[d][1] }; visited[key(pos.x, pos.y)] = 1; }
+    function freeDirs() { return DIRKEYS.filter(function (d) { return isFree(pos.x + DIRS[d][0], pos.y + DIRS[d][1]); }); }
+    function placeable(x, y) { var k = key(x, y); return inB(x, y) && !blocks[k] && !visited[k] && !reserved[k]; }
+    function fits(steps) {
+      var x = pos.x, y = pos.y;
+      for (var i = 0; i < steps.length; i++) {
+        x += DIRS[steps[i].d][0]; y += DIRS[steps[i].d][1];
+        if (!isFree(x, y)) return false;
+      }
+      return true;
+    }
+    function runFits(d, k) {
+      var x = pos.x, y = pos.y;
+      for (var i = 0; i < k; i++) { x += DIRS[d][0]; y += DIRS[d][1]; if (!isFree(x, y)) return false; }
+      return true;
+    }
+    function ev(text) {
+      var names = [], vals = [];
+      Object.keys(vars).forEach(function (n) { names.push(n); vals.push(vars[n].value); });
+      return Function.apply(null, names.concat('return (' + text + ');')).apply(null, vals);
+    }
+    function varLive() {
+      var out = [];
+      Object.keys(vars).forEach(function (n) { out.push({ node: vars[n].node, text: n + ' = ' + vars[n].value }); });
+      if (dirVar) out.push({ node: dirVar.node, text: 'direccion = "' + NAMES[dirVar.value] + '"' });
+      return out;
+    }
+    function pushStep(d, lines, live, why, post, phases) {
+      trace.push({ d: d, lines: pend.concat(lines), live: (live || []).concat(varLive()), why: pendWhy.concat(why || []), post: post || [], phases: phases || [] });
+      pend = []; pendWhy = [];
+    }
+    function declare(n, text) { prog.push(n); pend.push(n); pendWhy.push(text); }
+    function emit(callNode, steps) {
+      if (!steps.length) return;
+      steps[0].why = [callWhy(callNode)].concat(steps[0].why || []);
+      var last = steps[steps.length - 1];
+      last.post = (last.post || []).concat([callPost(callNode)]);
+      steps.forEach(function (st) {
+        adv(st.d);
+        pushStep(st.d, [callNode].concat(st.lines), st.live, st.why, st.post, st.phases);
+      });
+    }
+    // Busca una dirección (o secuencia de 1-2 direcciones) que se pueda repetir k veces
+    function findBody(k, len) {
+      for (var tr = 0; tr < 40; tr++) {
+        var b = [];
+        for (var j = 0; j < len; j++) b.push(pick(DIRKEYS));
+        if (len === 2 && OPP[b[0]] === b[1]) continue;
+        var px = pos.x, py = pos.y, ok = true;
+        for (var i = 0; i < k && ok; i++) {
+          for (var j2 = 0; j2 < len; j2++) {
+            px += DIRS[b[j2]][0]; py += DIRS[b[j2]][1];
+            if (!isFree(px, py)) { ok = false; break; }
+          }
+        }
+        if (ok) return b;
+      }
+      return null;
+    }
+
+    for (var pi = 0; pi < plan.length; pi++) {
+      var t = plan[pi], node, d;
+      if (t === 'rep') t = Math.random() < 0.5 ? 'for' : 'vwhile';
+      used.push(t);
+
+      if (t === 'move') {
+        var fd0 = freeDirs();
+        if (!fd0.length) return null;
+        d = pick(fd0);
+        node = { t: 'move', d: d };
+        prog.push(node); adv(d);
+        pushStep(d, [node], []);
+
+      } else if (t === 'for') {
+        var n = cfg.forN[0] + rnd(cfg.forN[1] - cfg.forN[0] + 1);
+        var bodyLen = Math.random() < cfg.body2 ? 2 : 1;
+        var body = findBody(n, bodyLen);
+        if (!body) return null;
+        node = { t: 'for', n: n, body: body.map(mvNode) };
+        prog.push(node);
+        for (var ii = 0; ii < n; ii++) {
+          for (var jj = 0; jj < bodyLen; jj++) {
+            adv(body[jj]);
+            var nr = forNarr(ii, n, jj, bodyLen, String(n), node, node.body[jj]);
+            pushStep(body[jj], [node, node.body[jj]], [{ node: node, text: 'i = ' + ii }], nr.why, nr.post, nr.phases);
+          }
+        }
+
+      } else if (t === 'if') {
+        var wantTrue = Math.random() < 0.5, order = shuffle(DIRKEYS.slice()), cd = null, blockedNow = false, cx, cy;
+        for (var k = 0; k < order.length; k++) {
+          var kd = order[k];
+          cx = pos.x + DIRS[kd][0]; cy = pos.y + DIRS[kd][1];
+          var bl = !isFree(cx, cy);
+          if (wantTrue) {
+            if (bl) { cd = kd; blockedNow = true; break; }
+            if (placeable(cx, cy)) {
+              blocks[key(cx, cy)] = 1;
+              if (freeDirs().length) { cd = kd; blockedNow = true; break; }
+              delete blocks[key(cx, cy)];
+            }
+          } else if (!bl) {
+            cd = kd; blockedNow = false; reserved[key(cx, cy)] = 1; break;
+          }
+        }
+        if (cd === null) {
+          cd = order[0];
+          cx = pos.x + DIRS[cd][0]; cy = pos.y + DIRS[cd][1];
+          blockedNow = !isFree(cx, cy);
+          if (!blockedNow) reserved[key(cx, cy)] = 1;
+        }
+        var fd = freeDirs();
+        if (!fd.length) return null;
+        var taken = blockedNow ? pick(fd) : (Math.random() < 0.6 ? cd : pick(fd));
+        var untaken = pick(DIRKEYS.filter(function (x) { return x !== taken; }));
+        node = {
+          t: 'if', cd: cd, truth: blockedNow,
+          thenMove: { t: 'move', d: blockedNow ? taken : untaken },
+          elseMove: { t: 'move', d: blockedNow ? untaken : taken }
+        };
+        prog.push(node);
+        var ifWhy = blockedNow
+          ? '`bloqueado("' + NAMES[cd] + '")`: hacia ' + NAMES[cd] + (inB(cx, cy) ? ' hay un círculo rojo' : ' está el borde del tablero') + ' → es verdadero: se ejecuta el bloque `if`.'
+          : '`bloqueado("' + NAMES[cd] + '")`: hacia ' + NAMES[cd] + ' la casilla está libre → es falso: se ejecuta el bloque `else`.';
+        adv(taken);
+        pushStep(taken, [node, blockedNow ? node.thenMove : node.elseMove], [], [ifWhy], []);
+
+      } else if (t === 'while') {
+        var ord = shuffle(DIRKEYS.slice()), chosen = null, count = 0;
+        for (var q = 0; q < ord.length && !chosen; q++) {
+          var wd = ord[q], dx = DIRS[wd][0], dy = DIRS[wd][1];
+          var L = 0, x = pos.x, y = pos.y;
+          while (isFree(x + dx, y + dy) && L < 10) { x += dx; y += dy; L++; }
+          if (L < 1) continue;
+          var m = null;
+          if (L >= 3 && (L > 5 || Math.random() < 0.6)) {
+            var cands = [];
+            for (var mm = 2; mm <= Math.min(L, 5); mm++) {
+              if (placeable(pos.x + dx * mm, pos.y + dy * mm)) cands.push(mm);
+            }
+            if (cands.length) {
+              m = pick(cands);
+              blocks[key(pos.x + dx * m, pos.y + dy * m)] = 1;
+              count = m - 1;
+            }
+          }
+          if (m === null) {
+            if (L <= 5) count = L; else continue;
+          }
+          chosen = wd;
+        }
+        if (!chosen) return null;
+        node = { t: 'while', d: chosen, count: count, body: { t: 'move', d: chosen } };
+        prog.push(node);
+        for (var w = 0; w < count; w++) {
+          adv(chosen);
+          var wWhy = [], wPost = [];
+          if (w === 0) wWhy.push('`while (!bloqueado("' + NAMES[chosen] + '"))`: hacia ' + NAMES[chosen] + ' no hay obstáculo → `!bloqueado` es verdadero: entra.');
+          else wWhy.push('Se comprueba otra vez: hacia ' + NAMES[chosen] + ' sigue libre → entra.');
+          if (w === count - 1) {
+            wPost.push('Se comprueba otra vez: ahora hacia ' + NAMES[chosen] + (inB(pos.x + DIRS[chosen][0], pos.y + DIRS[chosen][1]) ? ' hay un círculo rojo' : ' está el borde del tablero') + ' → `bloqueado` es verdadero y `!bloqueado` es falso: el `while` termina.');
+          }
+          pushStep(chosen, [node, node.body], [], wWhy, wPost);
+        }
+
+      } else if (t === 'decoy') {
+        if (!nameQ.length) return null;
+        var dd = makeSimple()[0];
+        dd.name = nameQ.pop(); dd.decoy = true;
+        defs.push(dd);
+        pendWhy.push('La función `' + dd.name + '` está definida pero ninguna línea la llama: sus instrucciones no se ejecutan.');
+
+      } else if (t === 'call' || t === 'callf' || t === 'calln') {
+        var mainDef = slots[t];
+        if (!mainDef) {
+          var made = null;
+          for (var ftr = 0; ftr < 40 && !made; ftr++) {
+            var cand = t === 'call' ? makeSimple() : (t === 'callf' ? makeLoopFn() : makeNested());
+            var md = cand[cand.length - 1];
+            if (fits(expandItems(md.body, null, md))) made = cand;
+          }
+          if (!made || nameQ.length < made.length) return null;
+          made.forEach(function (df) { df.name = nameQ.pop(); defs.push(df); });
+          mainDef = slots[t] = made[made.length - 1];
+        }
+        var steps = expandItems(mainDef.body, null, mainDef);
+        if (!fits(steps)) return null;
+        node = { t: 'call', def: mainDef };
+        prog.push(node);
+        emit(node, steps);
+
+      } else if (t === 'callp' || t === 'callpf') {
+        var pdef = slots[t];
+        if (!pdef) { pdef = makeParam(t === 'callpf'); defs.push(pdef); slots[t] = pdef; }
+        var okDirs = DIRKEYS.filter(function (dd2) { return fits(expandItems(pdef.body, dd2, pdef)); });
+        if (!okDirs.length) return null;
+        var arg = pick(okDirs);
+        node = { t: 'call', def: pdef, arg: arg };
+        prog.push(node);
+        emit(node, expandItems(pdef.body, arg, pdef));
+
+      } else if (t === 'vdir') {
+        var firstDecl = !dirVar, m1 = 1 + rnd(2);
+        var d1opts = DIRKEYS.filter(function (dd3) { return runFits(dd3, m1) && (!dirVar || dd3 !== dirVar.value); });
+        if (!d1opts.length) return null;
+        var d1 = pick(d1opts);
+        var n1 = { t: firstDecl ? 'letdir' : 'assigndir', name: 'direccion', v: d1 };
+        declare(n1, firstDecl
+          ? 'Se crea la variable `direccion` y se guarda el texto "' + NAMES[d1] + '".'
+          : '`direccion` cambia a "' + NAMES[d1] + '" (antes valía "' + NAMES[dirVar.value] + '").');
+        dirVar = { value: d1, node: n1 };
+        for (var a1 = 0; a1 < m1; a1++) {
+          var mn = { t: 'movevarg', name: 'direccion' };
+          prog.push(mn); adv(d1);
+          pushStep(d1, [mn], [], ['`mover(direccion)`: `direccion` vale "' + NAMES[d1] + '" → se mueve hacia ' + NAMES[d1] + '.'], []);
+        }
+        var d2opts = freeDirs().filter(function (dd4) { return dd4 !== d1; });
+        if (!d2opts.length) return null;
+        var d2 = pick(d2opts);
+        var n2 = { t: 'assigndir', name: 'direccion', v: d2 };
+        declare(n2, '`direccion` cambia a "' + NAMES[d2] + '" (antes valía "' + NAMES[d1] + '").');
+        dirVar = { value: d2, node: n2 };
+        var mn2 = { t: 'movevarg', name: 'direccion' };
+        prog.push(mn2); adv(d2);
+        pushStep(d2, [mn2], [], ['`mover(direccion)`: `direccion` vale "' + NAMES[d2] + '" → se mueve hacia ' + NAMES[d2] + '.'], []);
+
+      } else if (t === 'vfor' || t === 'vforop') {
+        if (!varQ.length) return null;
+        var vk = 2 + rnd(3), vbl = Math.random() < cfg.body2 ? 2 : 1;
+        var vb = findBody(vk, vbl);
+        if (!vb) return null;
+        var vname = varQ.pop(), letNode;
+        if (t === 'vfor' || Math.random() < 0.5) {
+          letNode = { t: 'let', name: vname, text: exprFor(vk, t === 'vforop'), value: vk };
+          vars[vname] = { value: vk, node: letNode };
+          declare(letNode, letWhy(letNode));
+        } else {
+          var kinds = ['-'];
+          if (vk >= 2) kinds.push('+');
+          if (vk % 2 === 0) kinds.push('*');
+          var kind = pick(kinds), c0, atext;
+          if (kind === '+') { var e1 = 1 + rnd(Math.min(2, vk - 1)); c0 = vk - e1; atext = vname + ' + ' + e1; }
+          else if (kind === '-') { var e2 = 1 + rnd(2); c0 = vk + e2; atext = vname + ' - ' + e2; }
+          else { c0 = vk / 2; atext = vname + ' * 2'; }
+          letNode = { t: 'let', name: vname, text: String(c0), value: c0 };
+          vars[vname] = { value: c0, node: letNode };
+          declare(letNode, letWhy(letNode));
+          var asNode = { t: 'assign', name: vname, text: atext, value: vk };
+          vars[vname] = { value: vk, node: asNode };
+          declare(asNode, 'Se calcula `' + subst(atext, vname, c0) + '` = ' + vk + ' y `' + vname + '` pasa a valer ' + vk + '.');
+        }
+        node = { t: 'for', n: vk, nVar: vname, body: vb.map(mvNode) };
+        prog.push(node);
+        for (var vi = 0; vi < vk; vi++) {
+          for (var vj = 0; vj < vbl; vj++) {
+            adv(vb[vj]);
+            var vnr = forNarr(vi, vk, vj, vbl, vname, node, node.body[vj]);
+            pushStep(vb[vj], [node, node.body[vj]], [{ node: node, text: 'i = ' + vi }], vnr.why, vnr.post, vnr.phases);
+          }
+        }
+
+      } else if (t === 'vwhile' || t === 'vwhile2') {
+        if (!cntQ.length) return null;
+        var simple = t === 'vwhile';
+        var wk = 2 + rnd(3), wstep = simple ? 1 : pick([1, 2]), wstart = simple ? 0 : pick([0, 1]), wcmp = simple ? '<' : pick(['<', '<=']);
+        var lo, hi;
+        if (wcmp === '<') { lo = wstart + (wk - 1) * wstep + 1; hi = wstart + wk * wstep; }
+        else { lo = wstart + (wk - 1) * wstep; hi = wstart + wk * wstep - 1; }
+        var wL = lo + rnd(hi - lo + 1);
+        var useVar = !simple && limQ.length > 0 && Math.random() < 0.5;
+        var wbl = (!simple && Math.random() < cfg.body2) ? 2 : 1;
+        var wb = findBody(wk, wbl);
+        if (!wb) return null;
+        var cname = cntQ.shift();
+        var letC = { t: 'let', name: cname, text: String(wstart), value: wstart };
+        declare(letC, letWhy(letC));
+        var limText = String(wL);
+        if (useVar) {
+          var lname = limQ.shift();
+          var limNode = { t: 'let', name: lname, text: exprFor(wL, true), value: wL };
+          vars[lname] = { value: wL, node: limNode };
+          declare(limNode, letWhy(limNode));
+          limText = lname;
+        }
+        var incKinds = wstep === 1 ? [cname + '++', cname + ' = ' + cname + ' + 1', cname + ' += 1'] : [cname + ' += 2', cname + ' = ' + cname + ' + 2'];
+        var incNode = { t: 'inc', text: pick(incKinds) };
+        var wn = { t: 'wc', cond: cname + ' ' + wcmp + ' ' + limText, body: wb.map(mvNode), inc: incNode, iters: wk, start: wstart, step: wstep, cname: cname, final: wstart + wk * wstep };
+        prog.push(wn);
+        var equiv = 'Es lo mismo que: `for (let ' + cname + ' = ' + wstart + '; ' + cname + ' ' + wcmp + ' ' + limText + '; ' + (wstep === 1 ? cname + '++' : cname + ' += 2') + ') { … }`';
+        for (var wt = 0; wt < wk; wt++) {
+          var wval = wstart + wt * wstep;
+          for (var wj = 0; wj < wbl; wj++) {
+            adv(wb[wj]);
+            var wl = [wn, wn.body[wj]], cwhy = [], cph = [];
+            if (wj === wbl - 1) wl.push(incNode);
+            if (wj === 0) {
+              if (wt === 0) {
+                cph.push({ k: 'init', node: letC, text: '① Inicialización (solo la primera vez): `let ' + cname + ' = ' + wstart + '` → `' + cname + '` vale ' + wstart + '.' });
+                cwhy.push(equiv);
+              }
+              cph.push({ k: 'cond', node: wn, text: '② Comprobación: `' + wn.cond + '` con `' + cname + ' = ' + wval + '` → `' + wval + ' ' + wcmp + ' ' + wL + '` es verdadero: se entra.' + (useVar ? ' (`' + limText + '` vale ' + wL + ')' : '') });
+            }
+            cph.push({ k: 'body', node: wn.body[wj], text: '③ Cuerpo' + (wbl > 1 ? ' (línea ' + (wj + 1) + ' de ' + wbl + ')' : '') + ': se ejecuta ' + stmtText(wn.body[wj]) + '.' });
+            if (wj === wbl - 1) {
+              var nextVal = wval + wstep;
+              cph.push({ k: 'inc', node: incNode, text: '④ Aumento: ' + incEquiv(incNode.text, cname) + ' → `' + cname + '` pasa a valer ' + nextVal + '.' });
+              if (wt === wk - 1) cph.push({ k: 'exit', node: wn, text: '② Comprobación: `' + nextVal + ' ' + wcmp + ' ' + wL + '` → falso: el `while` termina.' });
+            }
+            pushStep(wb[wj], wl, [{ node: wn, text: cname + ' = ' + wval }], cwhy, [], cph);
+          }
+        }
+
+      } else if (t === 'vif') {
+        var vnames = Object.keys(vars), reuse = vnames.length > 0 && Math.random() < 0.7, iname, ival;
+        if (reuse) { iname = pick(vnames); ival = vars[iname].value; }
+        else {
+          if (!varQ.length) return null;
+          iname = varQ.pop(); ival = 2 + rnd(5);
+          var ln0 = { t: 'let', name: iname, text: exprFor(ival, level >= 22), value: ival };
+          vars[iname] = { value: ival, node: ln0 };
+          declare(ln0, letWhy(ln0));
+        }
+        var form = pick(['>', '<', '==', '%']), wantT = Math.random() < 0.5, ctext, nn;
+        if (form === '>') { nn = wantT ? rnd(ival) : ival + rnd(3); ctext = iname + ' > ' + nn; }
+        else if (form === '<') { nn = wantT ? ival + 1 + rnd(3) : Math.max(0, ival - rnd(3)); ctext = iname + ' < ' + nn; }
+        else if (form === '==') { nn = wantT ? ival : ival + (Math.random() < 0.5 ? 1 : -1); if (nn < 0) nn = ival + 1; ctext = iname + ' == ' + nn; }
+        else ctext = iname + ' % 2 == 0';
+        var truth = !!ev(ctext);
+        var fdv = freeDirs();
+        if (!fdv.length) return null;
+        var tk = pick(fdv), ut = pick(DIRKEYS.filter(function (x2) { return x2 !== tk; }));
+        node = { t: 'ifv', cond: ctext, truth: truth, thenMove: mvNode(truth ? tk : ut), elseMove: mvNode(truth ? ut : tk) };
+        prog.push(node);
+        var vifWhy = 'Se comprueba `' + ctext + '`. Como `' + iname + '` vale ' + ival + ': `' + subst(ctext, iname, ival) + '`' +
+          (form === '%' ? ' (el resto de ' + ival + ' entre 2 es ' + (ival % 2) + ')' : '') +
+          ' → ' + (truth ? 'verdadero: se ejecuta el bloque `if`.' : 'falso: se ejecuta el bloque `else`.');
+        adv(tk);
+        pushStep(tk, [node, truth ? node.thenMove : node.elseMove], [], [vifWhy], []);
+
+      } else if (t === 'vfunc') {
+        var cdef = slots.vfunc;
+        if (!cdef) {
+          if (!nameQ.length) return null;
+          cdef = { t: 'def', name: 'caminar', param: true, count: true, body: [{ t: 'for', nParam: true, nVar: 'veces', body: [{ t: 'movevar' }] }] };
+          defs.push(cdef); slots.vfunc = cdef;
+        }
+        var opts = [];
+        Object.keys(vars).forEach(function (nm) {
+          var v = vars[nm].value;
+          [[nm, v], [nm + ' + 1', v + 1], [nm + ' - 1', v - 1], [nm + ' * 2', v * 2]].forEach(function (pr) {
+            if (pr[1] >= 1 && pr[1] <= 4) opts.push({ text: pr[0], val: pr[1] });
+          });
+        });
+        var chosenOpt;
+        if (opts.length && Math.random() < 0.85) chosenOpt = pick(opts);
+        else { var lv0 = 1 + rnd(4); chosenOpt = { text: String(lv0), val: lv0 }; }
+        var dopts = DIRKEYS.filter(function (dd5) { return fits(expandItems(cdef.body, dd5, cdef, chosenOpt.val)); });
+        if (!dopts.length) return null;
+        var cdir = pick(dopts);
+        node = { t: 'call', def: cdef, arg: cdir, cntText: chosenOpt.text, cnt: chosenOpt.val };
+        prog.push(node);
+        emit(node, expandItems(cdef.body, cdir, cdef, chosenOpt.val));
+      }
+    }
+
+    if (trace.length < 3 || trace.length > 40) return null;
+    if (pos.x === start.x && pos.y === start.y) return null;
+
+    var extra = Math.min(2 + level, 16), guard = 0;
+    while (extra > 0 && guard++ < 400) {
+      var rx = rnd(N), ry = rnd(N);
+      if (placeable(rx, ry)) { blocks[key(rx, ry)] = 1; extra--; }
+    }
+    return { start: start, goal: { x: pos.x, y: pos.y }, blocks: blocks, prog: prog, defs: defs, trace: trace, plan: used };
+  }
+
+  function makeLevel(level) {
+    for (var i = 0; i < 400; i++) { var lv = gen(level); if (lv) return lv; }
+    return gen(1) || gen(1);
+  }
+
+  /* ============ Preguntas de predicción ============ */
+  function opt(label, ok) { return { label: label, ok: ok }; }
+  function numOptions(ans, min) {
+    var cand = [ans - 2, ans - 1, ans + 1, ans + 2, ans + 3].filter(function (v) { return v >= min; });
+    shuffle(cand);
+    var vals = [ans].concat(cand.slice(0, 3)).sort(function (a, b) { return a - b; });
+    return vals.map(function (v) { return opt(String(v), v === ans); });
+  }
+  function firstStepOf(lv, node) {
+    for (var i = 0; i < lv.trace.length; i++) if (lv.trace[i].lines.indexOf(node) >= 0) return i;
+    return -1;
+  }
+  function questionFor(lv, n) {
+    var vs = [], at = firstStepOf(lv, n);
+    if (at < 0) return null;
+    if (n.t === 'for') {
+      var lim = n.nVar || String(n.n), vals = [];
+      for (var i = 0; i < n.n; i++) vals.push(i);
+      vs.push({
+        text: '¿Cuántas veces se repite el bloque de este `for`?', options: numOptions(n.n, 1),
+        hint: 'Mira la condición `i < ' + lim + '`: `i` empieza en 0 y sube de 1 en 1. Cuenta con cuántos valores de `i` entra el bucle.' + (n.nVar ? ' El valor de `' + n.nVar + '` se calculó unas líneas antes.' : ''),
+        good: 'Correcto: `i` vale ' + joinList(vals) + ' → ' + n.n + ' vueltas.'
+      });
+      if (n.body.length === 2) vs.push({
+        text: '¿Cuántos `mover()` ejecuta este `for` en total?', options: numOptions(n.n * 2, 1),
+        hint: 'Cada vuelta ejecuta las 2 líneas de dentro: multiplica las vueltas por las líneas.',
+        good: 'Correcto: ' + n.n + ' vueltas × 2 líneas = ' + (n.n * 2) + ' movimientos.'
+      });
+    } else if (n.t === 'wc') {
+      var cvals = [];
+      for (var t2 = 0; t2 < n.iters; t2++) cvals.push(n.start + t2 * n.step);
+      vs.push({
+        text: '¿Cuántas veces se ejecuta el cuerpo de este `while`?', options: numOptions(n.iters, 1),
+        hint: 'Anota el valor de `' + n.cname + '` en cada vuelta. La condición `' + n.cond + '` se comprueba antes de entrar y, después de `' + n.inc.text + '`, otra vez.',
+        good: 'Correcto: entra con `' + n.cname + '` = ' + joinList(cvals) + ' → ' + n.iters + ' vueltas.'
+      });
+      vs.push({
+        text: '¿Cuánto vale `' + n.cname + '` cuando el `while` termina?', options: numOptions(n.final, 0),
+        hint: 'El `while` sale cuando la condición `' + n.cond + '` deja de cumplirse. Sigue el valor de `' + n.cname + '` vuelta a vuelta.',
+        good: 'Correcto: `' + n.cname + '` termina valiendo ' + n.final + ' y entonces la condición es falsa.'
+      });
+    } else if (n.t === 'while') {
+      vs.push({
+        text: '¿Cuántas veces se ejecuta `mover("' + NAMES[n.d] + '")` dentro de este `while`?', options: numOptions(n.count, 1),
+        hint: 'El `while` avanza mientras NO haya círculo rojo ni borde del tablero hacia ' + NAMES[n.d] + '. Cuenta las casillas libres que tienes delante.',
+        good: 'Correcto: avanza ' + n.count + ' casilla' + (n.count === 1 ? '' : 's') + ' y se detiene al quedar bloqueado.'
+      });
+    } else if (n.t === 'if' || n.t === 'ifv') {
+      vs.push({
+        text: '¿Qué bloque se ejecuta aquí, el `if` o el `else`?',
+        options: [opt('El bloque `if`', n.truth), opt('El bloque `else`', !n.truth)],
+        hint: n.t === 'if'
+          ? '`bloqueado("dir")` es verdadero si en esa dirección hay un círculo rojo o el borde, mirando desde donde está ahora el círculo.'
+          : 'Sustituye la variable por su valor y resuelve la condición: ¿sale verdadera o falsa?',
+        good: 'Correcto: la condición es ' + (n.truth ? 'verdadera → `if`.' : 'falsa → `else`.')
+      });
+    } else if (n.t === 'call') {
+      var len = expandItems(n.def.body, n.arg, n.def, n.cnt).length;
+      vs.push({
+        text: '¿Cuántos `mover()` hace esta llamada a `' + n.def.name + '`?', options: numOptions(len, 1),
+        hint: 'Cuenta los `mover` de la función. Si hay un `for`, multiplica por sus vueltas; si llama a otra función, suma lo que hace esa.' + (n.def.count ? ' El argumento `' + n.cntText + '` se calcula antes de entrar.' : ''),
+        good: 'Correcto: cada llamada ejecuta ' + len + ' movimientos.'
+      });
+      if (n.def.param) {
+        var dopts = shuffle(DIRKEYS.slice()).map(function (k2) { return opt('"' + NAMES[k2] + '"', k2 === n.arg); });
+        vs.push({
+          text: '¿Qué valor tiene `dir` dentro de esta llamada?', options: dopts,
+          hint: 'El parámetro `dir` recibe lo que escribes entre paréntesis al llamar a la función.',
+          good: 'Correcto: `dir` vale "' + NAMES[n.arg] + '" mientras dura la llamada.'
+        });
+      }
+    } else if (n.t === 'movevarg') {
+      var curDir = null;
+      for (var pi2 = 0; pi2 < lv.prog.length && lv.prog[pi2] !== n; pi2++) {
+        if (lv.prog[pi2].t === 'letdir' || lv.prog[pi2].t === 'assigndir') curDir = lv.prog[pi2].v;
+      }
+      if (curDir) vs.push({
+        text: '¿Hacia dónde se mueve el círculo con este `mover(' + n.name + ')`?',
+        options: shuffle(DIRKEYS.slice()).map(function (k3) { return opt('"' + NAMES[k3] + '"', k3 === curDir); }),
+        hint: 'Busca la última línea que dio valor a `' + n.name + '` antes de esta: una asignación nueva sustituye el valor anterior.',
+        good: 'Correcto: `' + n.name + '` vale "' + NAMES[curDir] + '" en este momento.'
+      });
+    } else if ((n.t === 'let' && !/^\d+$/.test(n.text)) || n.t === 'assign') {
+      vs.push({
+        text: '¿Cuánto vale `' + n.name + '` después de esta línea?', options: numOptions(n.value, 0),
+        hint: 'Resuelve la operación `' + n.text + '`' + (n.t === 'assign' ? ' usando el valor que tenía `' + n.name + '` justo antes.' : '.'),
+        good: 'Correcto: `' + n.name + '` vale ' + n.value + '.'
+      });
+    }
+    if (!vs.length) return null;
+    var q = pick(vs);
+    q.at = at; q.node = n; q.line = n.line; q.done = false; q.shown = false;
+    return q;
+  }
+  function buildQuestion(lv) {
+    var cands = [];
+    lv.prog.forEach(function (n) { var q = questionFor(lv, n); if (q) cands.push(q); });
+    lv.defs.forEach(function (df) {
+      if (!df.decoy) return;
+      var q = {
+        at: 0, node: df, line: df.line, done: false, shown: false,
+        text: '¿Cuántas veces se ejecuta `' + df.name + '()` en este programa?', options: numOptions(0, 0),
+        hint: 'Busca qué líneas llaman a la función por su nombre. Escribir `function` solo la define: no se ejecuta hasta que alguien la llama.',
+        good: 'Correcto: 0 veces. Definir una función solo la guarda; se ejecuta cuando se la llama.'
+      };
+      cands.push(q, q, q);
+    });
+    return cands.length ? pick(cands) : null;
+  }
+
+  /* ============ DOM ============ */
+  var board = document.getElementById('board');
+  var wrap = document.getElementById('wrap');
+  var playerEl = document.getElementById('player');
+  var banner = document.getElementById('banner');
+  var explainEl = document.getElementById('explain');
+  var codeOl = document.getElementById('codeLines');
+  var tipEl = document.getElementById('tip');
+  var askEl = document.getElementById('ask'), askQ = document.getElementById('askQ'), askOpts = document.getElementById('askOpts'), askMsg = document.getElementById('askMsg');
+  var demoBtn = document.getElementById('demo'), hintBtn = document.getElementById('hint');
+  var cells = [];
+  for (var i = 0; i < N * N; i++) {
+    var c = document.createElement('div');
+    c.className = 'cell';
+    board.insertBefore(c, playerEl);
+    cells.push(c);
+  }
+
+  /* ---------- Progreso guardado ---------- */
+  var STORE = 'sigueElPrograma.v3';
+  // La numeración cambió al añadir niveles: antiguo → nuevo
+  function migrateKey(k) { return k <= 12 ? k : (k <= 23 ? k + 1 : k + 3); }
+  function migrate(oldDone) {
+    var out = {};
+    Object.keys(oldDone).forEach(function (k) { out[migrateKey(parseInt(k, 10))] = oldDone[k]; });
+    return out;
+  }
+  var done = {}, migrated = false;
+  try {
+    var raw = localStorage.getItem(STORE);
+    if (raw) done = JSON.parse(raw) || {};
+    else {
+      var v2 = localStorage.getItem('sigueElPrograma.v2'), v1 = localStorage.getItem('sigueElPrograma.v1');
+      if (v2) { done = migrate(JSON.parse(v2) || {}); migrated = true; }
+      else if (v1) { var o1 = JSON.parse(v1) || {}; delete o1[19]; done = migrate(o1); migrated = true; }
+    }
+  } catch (e) { done = {}; }
+  function saveDone() { try { localStorage.setItem(STORE, JSON.stringify(done)); } catch (e) {} }
+  if (migrated) saveDone();
+  function firstPending() {
+    for (var i = 1; i <= LEVELS.length; i++) if (!done[i]) return i;
+    return LEVELS.length + 1;
+  }
+  var trackEl = document.getElementById('track');
+  var countEl = document.getElementById('progCount');
+
+  function renderProgress(just) {
+    var cur = Math.min(state.level, LEVELS.length + 1), count = 0;
+    trackEl.innerHTML = '';
+    for (var i = 1; i <= LEVELS.length + 1; i++) {
+      var b = document.createElement('button');
+      var st = done[i];
+      b.type = 'button';
+      b.className = 'dot';
+      if (st) { b.classList.add(st === 'ok' ? 'done' : 'retry'); if (i <= LEVELS.length) count++; }
+      var label = i <= LEVELS.length ? i + '. ' + LEVELS[i - 1].title : i + '+ ' + MIXED_TITLE;
+      if (i === cur) { b.classList.add('current'); b.textContent = state.level; }
+      if (i === just) b.classList.add('just');
+      b.title = label;
+      b.setAttribute('aria-label', 'Nivel ' + label + (st ? ', completado' : '') + (i === cur ? ', nivel actual' : ''));
+      b.dataset.level = i;
+      trackEl.appendChild(b);
+    }
+    countEl.textContent = count;
+    document.getElementById('progTotal').textContent = LEVELS.length;
+    var c = trackEl.querySelector('.current');
+    if (c) trackEl.scrollLeft = Math.max(0, c.offsetLeft - trackEl.clientWidth / 2 + c.offsetWidth / 2);
+  }
+  trackEl.addEventListener('click', function (e) {
+    var b = e.target.closest('.dot');
+    if (!b) return;
+    state.level = parseInt(b.dataset.level, 10);
+    loadLevel();
+    b.blur();
+  });
+
+  var state = {
+    level: firstPending(), levelFails: 0, lastLoaded: 0, fails: 0, stepIndex: 0,
+    start: null, goal: null, player: null, blocks: {}, trace: [], prog: [], locked: false,
+    goalShown: true, question: null, demo: false
+  };
+  var lis = [];
+  var timers = [];
+  var demoTimer = null;
+  function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+  function retrigger(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+  /* ---------- Construcción del código ---------- */
+  function mv(d) { return '<span class="f">mover</span>(<span class="s">"' + NAMES[d] + '"</span>);'; }
+  function cond(d) { return '<span class="f">bloqueado</span>(<span class="s">"' + NAMES[d] + '"</span>)'; }
+  function hl(text) {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\b\d+\b/g, '<span class="n">$&</span>');
+  }
+
+  function buildCode(lv) {
+    var rows = [];
+    function add(html, node, L) { if (node) node.line = rows.length; rows.push({ h: html, l: L || 0 }); }
+
+    function renderNode(n, L) {
+      switch (n.t) {
+        case 'move': add(mv(n.d), n, L); break;
+        case 'movevar': add('<span class="f">mover</span>(dir);', n, L); break;
+        case 'movevarg': add('<span class="f">mover</span>(' + n.name + ');', n, L); break;
+        case 'call':
+          add('<span class="f">' + n.def.name + '</span>(' +
+            (n.def.param ? '<span class="s">"' + NAMES[n.arg] + '"</span>' : '') +
+            (n.def.count ? ', ' + hl(n.cntText) : '') + ');', n, L);
+          break;
+        case 'let': add('<span class="k">let</span> ' + n.name + ' = ' + hl(n.text) + ';<span class="live"></span>', n, L); break;
+        case 'assign': add(n.name + ' = ' + hl(n.text) + ';<span class="live"></span>', n, L); break;
+        case 'inc': add(hl(n.text) + ';', n, L); break;
+        case 'letdir': add('<span class="k">let</span> ' + n.name + ' = <span class="s">"' + NAMES[n.v] + '"</span>;<span class="live"></span>', n, L); break;
+        case 'assigndir': add(n.name + ' = <span class="s">"' + NAMES[n.v] + '"</span>;<span class="live"></span>', n, L); break;
+        case 'for':
+          add('<span class="k">for</span> (<span class="ph ph-init"><span class="k">let</span> i = <span class="n">0</span></span>; <span class="ph ph-cond">i &lt; ' +
+            (n.nVar ? n.nVar : '<span class="n">' + n.n + '</span>') + '</span>; <span class="ph ph-inc">i++</span>) {<span class="live"></span>', n, L);
+          n.body.forEach(function (b) { renderNode(b, L + 1); });
+          add('}', null, L);
+          break;
+        case 'if':
+          add('<span class="k">if</span> (' + cond(n.cd) + ') {', n, L);
+          renderNode(n.thenMove, L + 1);
+          add('} <span class="k">else</span> {', null, L);
+          renderNode(n.elseMove, L + 1);
+          add('}', null, L);
+          break;
+        case 'ifv':
+          add('<span class="k">if</span> (' + hl(n.cond) + ') {', n, L);
+          renderNode(n.thenMove, L + 1);
+          add('} <span class="k">else</span> {', null, L);
+          renderNode(n.elseMove, L + 1);
+          add('}', null, L);
+          break;
+        case 'while':
+          add('<span class="k">while</span> (!' + cond(n.d) + ') {', n, L);
+          renderNode(n.body, L + 1);
+          add('}', null, L);
+          break;
+        case 'wc':
+          add('<span class="k">while</span> (<span class="ph ph-cond">' + hl(n.cond) + '</span>) {<span class="live"></span>', n, L);
+          n.body.forEach(function (b) { renderNode(b, L + 1); });
+          renderNode(n.inc, L + 1);
+          add('}', null, L);
+          break;
+      }
+    }
+
+    add('<span class="c">// Ejecuta el programa con las flechas</span>');
+    add('<span class="k">let</span> jugador = { x: <span class="val" id="vpx">0</span>, y: <span class="val" id="vpy">0</span> };');
+    add('<span class="k">let</span> meta    = { x: <span class="val" id="vgx">?</span>, y: <span class="val" id="vgy">?</span> };');
+    add('');
+    lv.defs.forEach(function (df) {
+      add('<span class="k">function</span> <span class="f">' + df.name + '</span>(' + (df.count ? 'dir, veces' : df.param ? 'dir' : '') + ') {' +
+        (df.param ? '<span class="live"></span>' : ''), df, 0);
+      df.body.forEach(function (b) { renderNode(b, 1); });
+      add('}');
+      add('');
+    });
+    lv.prog.forEach(function (n) { renderNode(n, 0); });
+
+    codeOl.innerHTML = '';
+    lis = rows.map(function (r) {
+      var li = document.createElement('li');
+      var tabs = '';
+      for (var i = 0; i < r.l; i++) tabs += '<span class="tab"></span>';
+      li.innerHTML = tabs + '<span class="txt">' + r.h + '</span>';
+      codeOl.appendChild(li);
+      return li;
+    });
+    codeOl.scrollTop = 0;
+  }
+
+  function clearLive() { codeOl.querySelectorAll('.live').forEach(function (s) { s.textContent = ''; }); }
+  function clearMarks() { lis.forEach(function (li) { li.classList.remove('run', 'bad', 'good', 'askline'); }); clearPhases(); }
+  function scrollToLine(li) {
+    if (li.offsetTop < codeOl.scrollTop + 8) codeOl.scrollTop = Math.max(0, li.offsetTop - 8);
+    else if (li.offsetTop + li.offsetHeight > codeOl.scrollTop + codeOl.clientHeight - 8) codeOl.scrollTop = li.offsetTop + li.offsetHeight - codeOl.clientHeight + 8;
+  }
+  function mark(nodes, cls) {
+    clearMarks();
+    nodes.forEach(function (n) { lis[n.line].classList.add(cls); });
+    scrollToLine(lis[nodes[nodes.length - 1].line]);
+  }
+
+  /* ---------- Explicación ---------- */
+  // Animación de las 4 partes de un bucle: inicialización, comprobación, cuerpo, aumento
+  var PHASE_MS = 420, phaseTimers = [];
+  function clearPhases() {
+    phaseTimers.forEach(clearTimeout); phaseTimers = [];
+    lis.forEach(function (li) { li.classList.remove('phase'); });
+    codeOl.querySelectorAll('.ph.on').forEach(function (sp) { sp.classList.remove('on', 'exit'); });
+  }
+  function applyPhase(step, idx) {
+    var ph = step.phases[idx], li = ph.node && lis[ph.node.line];
+    if (!li) return;
+    lis.forEach(function (l) { l.classList.remove('phase'); });
+    codeOl.querySelectorAll('.ph.on').forEach(function (sp) { sp.classList.remove('on', 'exit'); });
+    var span = null;
+    if (ph.node.t === 'for') span = li.querySelector(ph.k === 'init' ? '.ph-init' : ph.k === 'inc' ? '.ph-inc' : '.ph-cond');
+    else if (ph.node.t === 'wc' && (ph.k === 'cond' || ph.k === 'exit')) span = li.querySelector('.ph-cond');
+    if (span) { span.classList.add('on'); if (ph.k === 'exit') span.classList.add('exit'); }
+    else li.classList.add('phase');
+    explainEl.querySelectorAll('.phl li').forEach(function (it, i) { it.classList.toggle('on', i === idx); it.classList.toggle('past', i < idx); });
+    scrollToLine(li);
+  }
+  function playPhases(step) {
+    clearPhases();
+    if (!step.phases || !step.phases.length) return;
+    step.phases.forEach(function (p, i) { phaseTimers.push(setTimeout(function () { applyPhase(step, i); }, i * PHASE_MS)); });
+  }
+
+  function explain(head, items, cls, phases) {
+    var phl = (phases && phases.length)
+      ? '<ol class="phl">' + phases.map(function (p, i) { return '<li data-i="' + i + '">' + fmt(p.text) + '</li>'; }).join('') + '</ol>' : '';
+    explainEl.innerHTML = '<div class="ex-head ' + (cls || '') + '">' + fmt(head) + '</div>' + phl +
+      (items.length ? '<ul>' + items.map(function (s) { return '<li>' + fmt(s) + '</li>'; }).join('') + '</ul>' : '');
+    explainEl.scrollTop = 0;
+  }
+  function moveLine(step) {
+    for (var i = step.lines.length - 1; i >= 0; i--) {
+      var t = step.lines[i].t;
+      if (t === 'move' || t === 'movevar' || t === 'movevarg') return step.lines[i].line + 1;
+    }
+    return step.lines[step.lines.length - 1].line + 1;
+  }
+  function explainIntro() {
+    var items = ['Pulsa la flecha de cada `mover()` en el orden en que se ejecutaría el programa.'];
+    if (!state.goalShown) items.push('La meta está oculta: llegarás a ella solo si ejecutas bien el código.');
+    items.push('Después de cada paso, aquí te explico por qué el programa hizo eso.');
+    explain('Qué hace cada línea', items);
+  }
+  function explainStep(step) {
+    explain('mover("' + NAMES[step.d] + '") · línea ' + moveLine(step), (step.why || []).concat(step.post || []), '', step.phases);
+  }
+
+  /* ---------- Pregunta ---------- */
+  function hideAsk() {
+    askEl.hidden = true;
+    askEl.classList.remove('answered', 'enter', 'shake');
+    lis.forEach(function (li) { li.classList.remove('askline'); });
+  }
+  function showAsk(q) {
+    q.shown = true; state.locked = true;
+    askQ.innerHTML = '<span class="ask-line">línea ' + (q.line + 1) + '</span>' + fmt(q.text);
+    askOpts.innerHTML = '';
+    askMsg.className = 'ask-msg';
+    askMsg.textContent = 'Predice antes de ejecutar (puedes pulsar 1, 2, 3…).';
+    q.options.forEach(function (o, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.innerHTML = '<kbd>' + (i + 1) + '</kbd>' + fmt(o.label);
+      b.addEventListener('click', function () { answer(i); });
+      askOpts.appendChild(b);
+    });
+    askEl.classList.remove('answered', 'shake');
+    askEl.hidden = false;
+    retrigger(askEl, 'enter');
+    if (lis[q.line]) { lis[q.line].classList.add('askline'); scrollToLine(lis[q.line]); }
+    askEl.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }
+  function answer(i) {
+    var q = state.question;
+    if (!q || !q.shown || q.done) return;
+    var o = q.options[i];
+    if (!o) return;
+    var btn = askOpts.children[i];
+    if (o.ok) {
+      q.done = true;
+      btn.classList.add('right');
+      Array.prototype.forEach.call(askOpts.children, function (b) { b.disabled = true; });
+      askMsg.className = 'ask-msg ok';
+      askMsg.innerHTML = '✓ ' + fmt(q.good);
+      askEl.classList.add('answered');
+      state.locked = false;
+    } else {
+      btn.classList.add('wrong'); btn.disabled = true;
+      state.levelFails++;
+      askMsg.className = 'ask-msg bad';
+      askMsg.innerHTML = '✗ ' + fmt(q.hint);
+      retrigger(askEl, 'shake');
+    }
+  }
+  function maybeAsk() {
+    var q = state.question;
+    if (!q || q.done || state.demo || state.stepIndex !== q.at) return;
+    showAsk(q);
+  }
+
+  /* ---------- Tablero y estado ---------- */
+  function paintBoard() {
+    for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) {
+      var el = cells[y * N + x];
+      el.className = 'cell';
+      el.style.removeProperty('--d');
+      if (state.blocks[key(x, y)]) el.classList.add('block');
+      if (state.goalShown && x === state.goal.x && y === state.goal.y) el.classList.add('goal');
+    }
+  }
+  function updateGoalText() {
+    var a = document.getElementById('vgx'), b = document.getElementById('vgy');
+    if (a) a.textContent = state.goalShown ? state.goal.x : '?';
+    if (b) b.textContent = state.goalShown ? state.goal.y : '?';
+    hintBtn.hidden = state.goalShown;
+  }
+  function revealGoal() {
+    if (state.goalShown) return;
+    state.goalShown = true;
+    cells[state.goal.y * N + state.goal.x].classList.add('goal');
+    updateGoalText();
+  }
+  function placePlayer(p) {
+    playerEl.style.setProperty('--x', p.x);
+    playerEl.style.setProperty('--y', p.y);
+  }
+  function paintValues() {
+    var a = document.getElementById('vpx'), b = document.getElementById('vpy');
+    if (a) a.textContent = state.player.x;
+    if (b) b.textContent = state.player.y;
+    document.getElementById('sStep').textContent = state.stepIndex + '/' + state.trace.length;
+    document.getElementById('sFails').textContent = state.fails;
+    document.getElementById('title').textContent = 'Nivel ' + state.level + ': ' + levelTitle(state.level);
+  }
+
+  function showBanner(text, cls) {
+    banner.textContent = text;
+    banner.className = 'banner ' + cls;
+    void banner.offsetWidth;
+    banner.classList.add('show');
+    later(function () { banner.classList.remove('show'); }, 1000);
+  }
+
+  function paintTip(plan) {
+    var has = {};
+    plan.forEach(function (t) { has[t] = 1; });
+    var h = '';
+    if (has['for'] || has['vfor'] || has['vforop'] || has['callf'] || has['callpf'] || has['vfunc']) {
+      h += '<p>Un <code>for</code> tiene 4 partes que se ejecutan siempre en este orden: ① inicialización <code>let i = 0</code> (solo la primera vez), ② comprobación <code>i &lt; 3</code>, ③ cuerpo y ④ aumento <code>i++</code>. Después se vuelve a la ②; cuando la comprobación es falsa, el <code>for</code> termina.</p>' +
+        '<p><code>i++</code> es lo mismo que <code>i = i + 1</code> y que <code>i += 1</code>: suma 1 a <code>i</code>.</p>';
+    }
+    if (has['if']) h += '<p><code>bloqueado("dir")</code> es verdadero si, desde donde estás ahora, hay un círculo rojo o el borde del tablero en esa dirección. Si es verdadero se ejecuta el primer bloque; si no, el <code>else</code>.</p>';
+    if (has['while']) h += '<p><code>while</code> repite mientras su condición se cumpla: avanzas hasta que <code>bloqueado(dir)</code> sea verdadero.</p>';
+    if (has['decoy']) h += '<p>Escribir <code>function nombre() { … }</code> solo define la función. Se ejecuta únicamente donde aparece <code>nombre();</code>.</p>';
+    var hasFn = has['call'] || has['callp'] || has['callf'] || has['callpf'] || has['calln'] || has['vfunc'];
+    if (hasFn) h += '<p>Una función agrupa líneas con un nombre y no hace nada hasta que se la llama. Cada llamada ejecuta todo su cuerpo, y puede llamarse varias veces.</p>';
+    if (has['callp'] || has['callpf']) h += '<p>En <code>avanzar("abajo")</code> el parámetro <code>dir</code> vale <code>"abajo"</code> mientras dura esa llamada.</p>';
+    if (has['callf'] || has['callpf']) h += '<p>Si una función contiene un <code>for</code>, cada llamada ejecuta todas sus vueltas.</p>';
+    if (has['calln']) h += '<p>Una función puede llamar a otra: cuando la interna termina, la externa sigue con su siguiente línea.</p>';
+    var hasVar = has['vdir'] || has['vfor'] || has['vforop'] || has['vwhile'] || has['vwhile2'] || has['vif'] || has['vfunc'];
+    if (hasVar) h += '<p>Una variable guarda un valor con nombre; si se reasigna, cambia para las líneas siguientes.</p>';
+    if (has['vforop'] || has['vfor']) h += '<p>El bucle repite tantas veces como valga la variable en ese momento. Las operaciones (<code>+</code>, <code>-</code>, <code>*</code>) se resuelven en orden.</p>';
+    if (has['vwhile'] || has['vwhile2']) h += '<p>Un <code>while</code> con contador tiene las mismas 4 partes que un <code>for</code>: ① <code>let c = 0</code> antes del bucle, ② comprobación, ③ cuerpo y ④ aumento, que ahora escribes tú dentro del bloque. <code>c++</code>, <code>c += 1</code> y <code>c = c + 1</code> hacen lo mismo (suman 1); <code>c += 2</code> equivale a <code>c = c + 2</code>. Con <code>&lt;=</code> el límite también cuenta.</p>';
+    if (has['vif']) h += '<p><code>%</code> es el resto de dividir: <code>n % 2 == 0</code> es verdadero si <code>n</code> es par. <code>==</code> compara si dos valores son iguales.</p>';
+    if (has['vfunc']) h += '<p>Los argumentos pueden ser variables u operaciones (<code>pasos + 1</code>): se calculan antes de entrar en la función.</p>';
+    tipEl.innerHTML = h;
+  }
+
+  /* ---------- Demostración paso a paso ---------- */
+  function cancelDemo() {
+    if (demoTimer) { clearTimeout(demoTimer); demoTimer = null; }
+    state.demo = false;
+    demoBtn.textContent = '▶ Ver ejecución';
+  }
+  function resetRun() {
+    timers.forEach(clearTimeout); timers = [];
+    banner.classList.remove('show');
+    wrap.classList.remove('flash-good', 'flash-bad', 'shake');
+    playerEl.classList.remove('hurt');
+    state.stepIndex = 0;
+    state.player = { x: state.start.x, y: state.start.y };
+    playerEl.style.transition = 'none';
+    placePlayer(state.player);
+    void playerEl.offsetWidth;
+    playerEl.style.transition = '';
+    clearMarks(); clearLive();
+    state.locked = false;
+    paintValues();
+  }
+  function endDemo() {
+    cancelDemo();
+    resetRun();
+    if (state.question && !state.question.done) state.question.shown = false;
+    explain('Fin de la demostración', ['Ahora ejecútalo tú con las flechas. ¿Podrías explicar con tus palabras qué hizo cada estructura?']);
+    maybeAsk();
+  }
+  function startDemo() {
+    if (state.demo) { endDemo(); return; }
+    var asking = state.question && state.question.shown && !state.question.done;
+    if (state.locked && !asking) return;
+    hideAsk();
+    resetRun();
+    state.demo = true;
+    state.levelFails++;               // ver la solución cuenta como ayuda
+    revealGoal();
+    demoBtn.textContent = '■ Parar';
+    var i = 0;
+    (function tick() {
+      if (!state.demo) return;
+      if (i >= state.trace.length) return;
+      var stp = state.trace[i];
+      press(stp.d, true);
+      i++;
+      if (i < state.trace.length) demoTimer = setTimeout(tick, Math.max(1500, (stp.phases || []).length * PHASE_MS + 700));
+    })();
+  }
+
+  /* ---------- Flujo de niveles ---------- */
+  function loadLevel() {
+    cancelDemo();
+    clearPhases();
+    timers.forEach(clearTimeout); timers = [];
+    banner.classList.remove('show');
+    wrap.classList.remove('flash-good', 'flash-bad', 'shake');
+    playerEl.classList.remove('hurt');
+    var lv = makeLevel(state.level);
+    state.start = lv.start; state.goal = lv.goal; state.blocks = lv.blocks;
+    state.trace = lv.trace; state.prog = lv.prog;
+    state.stepIndex = 0; state.player = { x: lv.start.x, y: lv.start.y };
+    state.goalShown = state.level < HIDE_GOAL_FROM;
+    buildCode(lv);
+    updateGoalText();
+    paintBoard();
+    playerEl.style.transition = 'none';
+    placePlayer(state.player);
+    void playerEl.offsetWidth;
+    playerEl.style.transition = '';
+    state.locked = false;
+    if (state.lastLoaded !== state.level) { state.levelFails = 0; state.lastLoaded = state.level; }
+    state.question = buildQuestion(lv);
+    hideAsk();
+    paintTip(lv.plan);
+    paintValues();
+    renderProgress();
+    explainIntro();
+    maybeAsk();
+  }
+
+  function restartProgram() {
+    cancelDemo();
+    hideAsk();
+    resetRun();
+    if (state.question && !state.question.done) state.question.shown = false;
+    explainIntro();
+    maybeAsk();
+  }
+
+  function fail(pressed, exp) {
+    state.fails++; state.levelFails++; state.locked = true;
+    var curDot = trackEl.querySelector('.current');
+    if (curDot) retrigger(curDot, 'oops');
+    var prev = state.trace[state.stepIndex - 1];
+    var items = [];
+    if (prev) (prev.phases || []).filter(function (p) { return p.k === 'inc' || p.k === 'exit'; }).forEach(function (p) { items.push(p.text); });
+    (exp.phases || []).filter(function (p) { return p.k === 'init' || p.k === 'cond'; }).forEach(function (p) { items.push(p.text); });
+    items = items.concat((prev && prev.post) || [], exp.why || []);
+    if (!items.length) items.push('Ejecuta el código en orden, línea por línea.');
+    explain('✗ Pulsaste ' + NAMES[pressed] + ', pero la línea ' + moveLine(exp) + ' pedía mover("' + NAMES[exp.d] + '")', items, 'bad');
+    mark(exp.lines, 'bad');
+
+    var nx = state.player.x + DIRS[pressed][0], ny = state.player.y + DIRS[pressed][1];
+    if (inB(nx, ny)) { state.player = { x: nx, y: ny }; placePlayer(state.player); }
+    retrigger(wrap, 'shake');
+    wrap.classList.add('flash-bad');
+    playerEl.classList.add('hurt');
+    showBanner('¡Fallo!', 'bad');
+    later(function () { wrap.classList.remove('flash-bad'); }, 600);
+    later(function () {
+      state.player = { x: state.start.x, y: state.start.y };
+      state.stepIndex = 0;
+      placePlayer(state.player);
+      paintValues();
+    }, 30);
+    later(function () {
+      playerEl.classList.remove('hurt');
+      clearMarks(); clearLive();
+      state.locked = false;
+    }, 1000);
+    paintValues();
+  }
+
+  function win() {
+    state.locked = true;
+    var last = state.trace[state.trace.length - 1];
+    mark(last.lines, 'good');
+    if (state.demo) {
+      cancelDemo();
+      showBanner('Fin de la demostración', 'info');
+      later(function () { endDemo(); }, 2600);
+      return;
+    }
+    var idx = Math.min(state.level, LEVELS.length + 1);
+    done[idx] = (state.levelFails === 0 || done[idx] === 'ok') ? 'ok' : 'retry';
+    saveDone();
+    renderProgress(idx);
+    explain('✓ Programa completo', (last.why || []).concat(last.post || []), 'good', last.phases);
+    revealGoal();
+    wrap.classList.add('flash-good');
+    showBanner('¡Acierto!', 'good');
+    var g = state.goal;
+    cells.forEach(function (el, i) {
+      var x = i % N, y = Math.floor(i / N);
+      el.style.setProperty('--d', Math.abs(x - g.x) + Math.abs(y - g.y));
+      el.classList.remove('wave'); void el.offsetWidth; el.classList.add('wave');
+    });
+    later(function () { state.level++; loadLevel(); }, 2200);
+  }
+
+  function press(dir, fromDemo) {
+    if (state.demo && !fromDemo) return;
+    if (state.locked) return;
+    var exp = state.trace[state.stepIndex];
+    hideAsk();
+    if (dir !== exp.d) { fail(dir, exp); return; }
+
+    state.player = { x: state.player.x + DIRS[dir][0], y: state.player.y + DIRS[dir][1] };
+    placePlayer(state.player);
+    retrigger(playerEl, 'pop');
+    state.stepIndex++;
+    clearLive();
+    var groups = {};
+    (exp.live || []).forEach(function (l) {
+      var g = groups[l.node.line] || (groups[l.node.line] = []);
+      if (g.indexOf(l.text) < 0) g.push(l.text);
+    });
+    Object.keys(groups).forEach(function (ln) {
+      var span = lis[ln].querySelector('.live');
+      if (span) span.textContent = '// ' + groups[ln].join(', ');
+    });
+    paintValues();
+    explainStep(exp);
+    if (state.stepIndex >= state.trace.length) { win(); playPhases(exp); return; }
+    mark(exp.lines, 'run');
+    playPhases(exp);
+    maybeAsk();
+  }
+
+  document.addEventListener('keydown', function (e) {
+    var q = state.question;
+    if (q && q.shown && !q.done && /^[1-9]$/.test(e.key)) { e.preventDefault(); answer(parseInt(e.key, 10) - 1); return; }
+    var dir = KEYS[e.key];
+    if (!dir) return;
+    e.preventDefault();
+    if (e.repeat) return;
+    press(dir);
+  });
+  document.querySelectorAll('.pad button').forEach(function (b) {
+    b.addEventListener('click', function () { press(b.dataset.dir); });
+  });
+  var resetBtn = document.getElementById('resetProg'), resetTimer = null;
+  resetBtn.addEventListener('click', function () {
+    if (!resetTimer) {
+      resetBtn.textContent = '¿Seguro? Pulsa otra vez';
+      resetTimer = setTimeout(function () { resetBtn.textContent = 'Borrar progreso'; resetTimer = null; }, 3000);
+      return;
+    }
+    clearTimeout(resetTimer); resetTimer = null;
+    resetBtn.textContent = 'Borrar progreso';
+    done = {}; saveDone();
+    state.level = 1; state.fails = 0;
+    loadLevel();
+  });
+  demoBtn.addEventListener('click', function () { startDemo(); demoBtn.blur(); });
+  hintBtn.addEventListener('click', function () {
+    if (state.goalShown) return;
+    revealGoal();
+    state.levelFails++;               // pedir la meta cuenta como ayuda
+    hintBtn.blur();
+  });
+  document.getElementById('restart').addEventListener('click', function () { restartProgram(); this.blur(); });
+  document.getElementById('another').addEventListener('click', function () { loadLevel(); this.blur(); });
+
+  loadLevel();
+})();
+</script>
+</body>
+</html>
+
+</body></html>
